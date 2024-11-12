@@ -1,26 +1,63 @@
-from openai import OpenAI
+import os
+from flask import Flask, render_template, request, Response
+import asyncio
+from dotenv import load_dotenv
+import aiohttp
 
-class ChatGPTClient:
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
-        self.api_key = api_key
-        self.model = model
-        OpenAI.api_key = api_key
-        self.client = OpenAI(api_key=api_key)
-        
-    def get_response(self, prompt: str, max_tokens: int = 100, temperature: float = 0.5):
-        try:
-            response = self.client.chat.completions.create (
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    }
-                ],
-                model=self.model,
-            )
+load_dotenv()
 
-            return response.choices[0].message.content
-        
-        except Exception as e:
-            print(f"Error calling ChatGPT API: {e}")
-            return None
+app = Flask(__name__, template_folder='templates')
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # Placeholder - replace with actual Gemini API key
+
+async def get_openai_response(message, q):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPENAI_API_KEY}"
+    }
+    data = {
+        "model": "gpt-3.5-turbo",  # Or another suitable model
+        "messages": [{"role": "user", "content": message}]
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data, stream=True) as response:
+            async for line in response.content:
+                q.put(f"OpenAI: {line.decode()}\n")
+
+async def get_gemini_response(message, q):
+    # Placeholder - Replace with actual Gemini API call using aiohttp
+    # This will depend on the Gemini API's specifics.
+    q.put(f"Gemini: {message} (Gemini API call not implemented)\n")
+
+
+@app.route("/openai", methods=["POST"])
+def openai_stream():
+    message = request.form["message"]
+    q = Queue()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(get_openai_response(message, q))
+    def stream():
+        while not q.empty():
+            yield f"data: {q.get()}\n\n"
+    return Response(stream(), mimetype="text/event-stream")
+
+@app.route("/gemini", methods=["POST"])
+def gemini_stream():
+    message = request.form["message"]
+    q = Queue()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(get_gemini_response(message, q))
+    def stream():
+        while not q.empty():
+            yield f"data: {q.get()}\n\n"
+    return Response(stream(), mimetype="text/event-stream")
+
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("index.html")
+
+if __name__ == "__main__":
+    app.run(debug=True)
