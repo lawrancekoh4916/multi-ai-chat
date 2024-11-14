@@ -1,4 +1,8 @@
 import streamlit as st
+
+# Set up the Streamlit page (must be first Streamlit command)
+st.set_page_config(layout="wide", page_title="Triple AI Chat")
+
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -61,9 +65,6 @@ if "messages" not in st.session_state:
     }
 if "current_input" not in st.session_state:
     st.session_state.current_input = None
-
-# Set up the Streamlit page
-st.set_page_config(layout="wide", page_title="Triple AI Chat")
 
 # Custom CSS for the chat containers
 st.markdown("""
