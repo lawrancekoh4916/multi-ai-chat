@@ -11,7 +11,7 @@ This application allows users to simultaneously interact with three different AI
 - OpenAI's GPT models
 - Groq's LLM models
 
-Each model runs in its own column with independent scrolling and message history, enabling real-time comparison of responses across different AI providers.
+Each model runs in its own column with message history, enabling real-time comparison of responses across different AI providers.
 
 ## Learning Objectives
 
